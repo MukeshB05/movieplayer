@@ -19,35 +19,46 @@
     let autoplayAttempted = false;
 
     // ================================================================
-    //  GET TMDB ID FROM URL (movie/{tmdbId})
+    //  GET TMDB ID FROM URL (supports both formats)
+    //  Format 1: /movie/351421
+    //  Format 2: /movie/?id=351421
     // ================================================================
     function getTmdbIdFromUrl() {
+        // 1. Check for query parameter first (?id=xxx)
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get('id');
+        if (idParam && idParam.match(/^(tt\d+|\d+)$/)) {
+            console.log(`📌 Found ID from query parameter: ${idParam}`);
+            return idParam;
+        }
+
+        // 2. Check path (movie/351421)
         const path = window.location.pathname;
-        // Remove leading/trailing slashes and split
         const parts = path.split('/').filter(p => p.length > 0);
         
         // Check if last part is a movie ID
         const lastPart = parts[parts.length - 1] || '';
-        
-        // If it looks like a TMDB ID (starts with 'tt' or is a number)
         if (lastPart.match(/^(tt\d+|\d+)$/)) {
+            console.log(`📌 Found ID from path: ${lastPart}`);
             return lastPart;
         }
         
-        // If the URL is like /movie/350787
+        // 3. If the URL is like /movie/350787
         if (parts.length >= 2 && parts[parts.length - 2] === 'movie') {
             const id = parts[parts.length - 1];
             if (id.match(/^(tt\d+|\d+)$/)) {
+                console.log(`📌 Found ID from movie path: ${id}`);
                 return id;
             }
         }
         
-        // Fallback to default
-        return '351421';
+        // 4. Fallback to default
+        console.log('📌 No ID found, using default: tt0111161');
+        return 'tt0111161';
     }
 
     const tmdbId = getTmdbIdFromUrl();
-    console.log(`🎬 Movie ID from URL: ${tmdbId}`);
+    console.log(`🎬 Final Movie ID: ${tmdbId}`);
 
     // ================================================================
     //  FETCH VIDEO DATA FROM JSON
@@ -59,9 +70,10 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
+            console.log('✅ Video data loaded successfully');
             return data;
         } catch (error) {
-            console.error('Error loading video data:', error);
+            console.error('❌ Error loading video data:', error);
             return null;
         }
     }
@@ -79,12 +91,10 @@
         autoplayAttempted = true;
         
         try {
-            // Try to play
             const playPromise = playerInstance.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
-                    console.log('Autoplay was prevented:', error);
-                    // Show a subtle hint for users to click play
+                    console.log('⚠️ Autoplay was prevented:', error);
                     const overlay = document.querySelector('.plyr__control--overlaid');
                     if (overlay) {
                         overlay.classList.add('pulse-animation');
@@ -92,7 +102,7 @@
                 });
             }
         } catch (error) {
-            console.log('Autoplay error:', error);
+            console.log('⚠️ Autoplay error:', error);
         }
     }
 
@@ -117,7 +127,7 @@
                             No video available for ID: <span style="color:#fff;">${tmdbId}</span>
                         </p>
                         <p style="margin-top: 12px; font-size: 13px; opacity: 0.5;">
-                            Try: 351421, 329999, 285945, 350787
+                            Try: tt0111161, tt0068646, tt0468569, 350787, 351421
                         </p>
                     </div>
                 `;
@@ -168,7 +178,6 @@
                 captions: { active: true, language: 'en', update: true },
                 fullscreen: { enabled: true, fallback: true, iosNative: true },
                 storage: { enabled: true, key: 'plyr_movie' },
-                // YouTube specific settings for autoplay
                 youtube: {
                     autoplay: 1,
                     rel: 0,
@@ -183,14 +192,12 @@
             // Event handlers
             playerInstance.on('ready', () => {
                 console.log(`✅ Player ready: ${video.title}`);
-                // Attempt autoplay when ready
                 setTimeout(attemptAutoplay, 500);
             });
 
             playerInstance.on('play', () => {
                 console.log('▶️ Video playing');
                 autoplayAttempted = true;
-                // Remove pulse animation if it was added
                 const overlay = document.querySelector('.plyr__control--overlaid');
                 if (overlay) {
                     overlay.classList.remove('pulse-animation');
@@ -198,8 +205,7 @@
             });
 
             playerInstance.on('error', (error) => {
-                console.warn('Plyr error:', error);
-                // If autoplay fails, show the play button
+                console.warn('⚠️ Plyr error:', error);
                 if (!autoplayAttempted) {
                     const overlay = document.querySelector('.plyr__control--overlaid');
                     if (overlay) {
@@ -209,7 +215,7 @@
                 }
             });
 
-            // Also try autoplay when user interacts with the page
+            // Try autoplay when user interacts with the page
             document.addEventListener('click', () => {
                 if (!autoplayAttempted) {
                     attemptAutoplay();
@@ -223,7 +229,7 @@
             }, { once: true });
 
         } catch (error) {
-            console.error('Error initializing player:', error);
+            console.error('❌ Error initializing player:', error);
             showError('Failed to load player', error.message || 'Unknown error');
         }
     }
