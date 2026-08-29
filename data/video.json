@@ -1,28 +1,28 @@
 {
     "videos": {
-        "350787": {
-            "youtube_id": "3IqGqL-FyQk",
-            "title": "Pandippada",
-            "year": "2005",
-            "quality": "1080",
-            "genre": "Comedy"
+        "tt0111161": {
+            "youtube_id": "6hB3S9bIaco",
+            "title": "The Shawshank Redemption",
+            "year": "1994",
+            "quality": "4K HDR",
+            "genre": "Drama"
         },
-        "351421": {
-            "youtube_id": "s6P9QNj2_o0",
-            "title": "Kuberan",
+        "tt0068646": {
+            "youtube_id": "sY1S34973zA",
+            "title": "The Godfather",
             "year": "1972",
             "quality": "4K",
             "genre": "Crime"
         },
-        "329999": {
-            "youtube_id": "htrTMjqwsB4",
+        "tt0071562": {
+            "youtube_id": "qVz5cJQ3VgE",
             "title": "The Godfather Part II",
             "year": "1974",
             "quality": "HD",
             "genre": "Crime"
         },
-        "285945": {
-            "youtube_id": "n1zSv-sdA38",
+        "tt0468569": {
+            "youtube_id": "EXeTwQWrcwY",
             "title": "The Dark Knight",
             "year": "2008",
             "quality": "4K IMAX",
@@ -64,7 +64,7 @@
             "genre": "Drama"
         },
         "tt1375666": {
-            "youtube_id": "uIU5H9I_8j4",
+            "youtube_id": "YoHD9XEInc0",
             "title": "Inception",
             "year": "2010",
             "quality": "4K HDR",
@@ -103,6 +103,20 @@
             "title": "Oppenheimer",
             "year": "2023",
             "quality": "4K HDR",
+            "genre": "Drama"
+        },
+        "350787": {
+            "youtube_id": "8B1rJhN-p2Y",
+            "title": "Pandippada",
+            "year": "2005",
+            "quality": "HD",
+            "genre": "Drama"
+        },
+        "351421": {
+            "youtube_id": "dQw4w9WgXcQ",
+            "title": "Your Movie Title",
+            "year": "2024",
+            "quality": "HD",
             "genre": "Drama"
         }
     }
