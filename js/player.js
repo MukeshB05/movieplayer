@@ -26,7 +26,7 @@
         if (id.includes('?')) id = id.split('?')[0];
         if (id.includes('#')) id = id.split('#')[0];
         if (!id || id === '' || id === 'movie' || id === 'embed') {
-            id = 'tt0111161'; // fallback
+            id = '351421'; // fallback
         }
         return id;
     }
