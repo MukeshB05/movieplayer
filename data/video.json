@@ -1,0 +1,109 @@
+{
+    "videos": {
+        "tt0111161": {
+            "youtube_id": "6hB3S9bIaco",
+            "title": "The Shawshank Redemption",
+            "year": "1994",
+            "quality": "4K HDR",
+            "genre": "Drama"
+        },
+        "tt0068646": {
+            "youtube_id": "1fY7uGJq8Bs",
+            "title": "The Godfather",
+            "year": "1972",
+            "quality": "4K",
+            "genre": "Crime"
+        },
+        "tt0071562": {
+            "youtube_id": "qVz5cJQ3VgE",
+            "title": "The Godfather Part II",
+            "year": "1974",
+            "quality": "HD",
+            "genre": "Crime"
+        },
+        "tt0468569": {
+            "youtube_id": "EXeTwQWrcwY",
+            "title": "The Dark Knight",
+            "year": "2008",
+            "quality": "4K IMAX",
+            "genre": "Action"
+        },
+        "tt0050083": {
+            "youtube_id": "1gPj4bF6oE0",
+            "title": "12 Angry Men",
+            "year": "1957",
+            "quality": "Restored",
+            "genre": "Drama"
+        },
+        "tt0108052": {
+            "youtube_id": "PSZxmZmBfnY",
+            "title": "Schindler's List",
+            "year": "1993",
+            "quality": "4K",
+            "genre": "Drama"
+        },
+        "tt0110912": {
+            "youtube_id": "sY1S34973zA",
+            "title": "Pulp Fiction",
+            "year": "1994",
+            "quality": "HD",
+            "genre": "Crime"
+        },
+        "tt0060196": {
+            "youtube_id": "1S3gG1P9i8U",
+            "title": "The Good, the Bad and the Ugly",
+            "year": "1966",
+            "quality": "4K",
+            "genre": "Western"
+        },
+        "tt0137523": {
+            "youtube_id": "BdJKm16Co6M",
+            "title": "Fight Club",
+            "year": "1999",
+            "quality": "HD",
+            "genre": "Drama"
+        },
+        "tt1375666": {
+            "youtube_id": "uIU5H9I_8j4",
+            "title": "Inception",
+            "year": "2010",
+            "quality": "4K HDR",
+            "genre": "Sci-Fi"
+        },
+        "tt0499549": {
+            "youtube_id": "5PSNL1qE6VY",
+            "title": "Avatar",
+            "year": "2009",
+            "quality": "4K HDR",
+            "genre": "Sci-Fi"
+        },
+        "tt0120737": {
+            "youtube_id": "V75dMMIW2B4",
+            "title": "The Lord of the Rings: The Fellowship of the Ring",
+            "year": "2001",
+            "quality": "4K",
+            "genre": "Fantasy"
+        },
+        "tt0167260": {
+            "youtube_id": "r5X-hFf6Bwo",
+            "title": "The Lord of the Rings: The Return of the King",
+            "year": "2003",
+            "quality": "4K",
+            "genre": "Fantasy"
+        },
+        "tt7286456": {
+            "youtube_id": "uYPbbksJxIg",
+            "title": "Joker",
+            "year": "2019",
+            "quality": "4K HDR",
+            "genre": "Drama"
+        },
+        "tt15398776": {
+            "youtube_id": "uLtkt8BonwM",
+            "title": "Oppenheimer",
+            "year": "2023",
+            "quality": "4K HDR",
+            "genre": "Drama"
+        }
+    }
+}
