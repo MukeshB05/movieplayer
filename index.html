@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Movie Player</title>
+
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .player-container {
+      width: 100%;
+      max-width: 1280px;
+    }
+
+    .player-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #000;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.75);
+    }
+
+    #player {
+      width: 100%;
+      height: 100%;
+    }
+
+    #player .plyr,
+    #player .plyr__video-embed,
+    #player .plyr__video-embed iframe {
+      width: 100%;
+      height: 100%;
+    }
+
+    #player .plyr__video-embed iframe {
+      border: 0;
+    }
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,255,255,.15);
+      border-top-color: #e50914;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      max-width: 520px;
+      padding: 22px;
+      border: 1px solid rgba(255,80,80,.35);
+      border-radius: 14px;
+      background: rgba(255,0,0,.08);
+      line-height: 1.5;
+    }
+
+    .error-message strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 7px;
+    }
+
+    .error-message small {
+      opacity: .7;
+      word-break: break-word;
+    }
+
+    .player-info {
+      position: absolute;
+      z-index: 10;
+      left: 22px;
+      right: 22px;
+      bottom: 72px;
+      pointer-events: none;
+      text-shadow: 0 2px 14px #000;
+    }
+
+    .player-info h1 {
+      margin: 0 0 6px;
+      font-size: 25px;
+      font-weight: 700;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #e50914;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 0; }
+
+      .player-wrapper {
+        border-radius: 0;
+        min-height: 56.25vw;
+      }
+
+      .player-info {
+        left: 14px;
+        right: 14px;
+        bottom: 62px;
+      }
+
+      .player-info h1 {
+        font-size: 18px;
+      }
+
+      .meta {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="player-container">
+    <section class="player-wrapper" id="playerWrapper">
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Loading movie...</div>
+      </div>
+
+      <div id="player"></div>
+
+      <div class="player-info" id="playerInfo" hidden>
+        <h1 id="movieTitle"></h1>
+        <div class="meta">
+          <span id="movieYear"></span>
+          <span class="badge" id="movieQuality"></span>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+
+  <script>
+    "use strict";
+
+    /*
+      MOVIE DATABASE
+
+      Supported URLs:
+        /embed/movie/tt0111161
+        /embed/movie/350787
+        /movie/tt0111161
+        /?id=tt0111161
+        /?tmdb=350787
+
+      IMPORTANT:
+      The YouTube ID must be a video that allows embedding.
+      A video that is private, deleted, age-restricted, or has
+      embedding disabled cannot be played by any HTML player.
+    */
+    const MOVIES = {
+      "tt0111161": {
+        youtube_id: "6hB3S9bIaco",
+        title: "The Shawshank Redemption",
+        year: "1994",
+        quality: "4K HDR"
+      },
+
+      "tt0068646": {
+        youtube_id: "sY1S34973zA",
+        title: "The Godfather",
+        year: "1972",
+        quality: "4K"
+      },
+
+      "tt0468569": {
+        youtube_id: "EXeTwQWrcwY",
+        title: "The Dark Knight",
+        year: "2008",
+        quality: "4K IMAX"
+      },
+
+      "350787": {
+        youtube_id: "8B1rJhN-p2Y",
+        title: "Pandippada",
+        year: "2005",
+        quality: "HD"
+      }
+    };
+
+    const loadingEl = document.getElementById("loading");
+    const playerEl = document.getElementById("player");
+    const playerInfoEl = document.getElementById("playerInfo");
+    const movieTitleEl = document.getElementById("movieTitle");
+    const movieYearEl = document.getElementById("movieYear");
+    const movieQualityEl = document.getElementById("movieQuality");
+
+    let plyrInstance = null;
+
+    function cleanId(value) {
+      if (!value) return "";
+      return decodeURIComponent(value)
+        .trim()
+        .replace(/^\/+|\/+$/g, "");
+    }
+
+    function getMovieId() {
+      const url = new URL(window.location.href);
+
+      // Query parameters.
+      const queryId =
+        url.searchParams.get("id") ||
+        url.searchParams.get("tmdb") ||
+        url.searchParams.get("movie");
+
+      if (queryId) {
+        return cleanId(queryId);
+      }
+
+      // Path:
+      // /embed/movie/350787
+      // /movie/350787
+      const parts = url.pathname
+        .split("/")
+        .map(cleanId)
+        .filter(Boolean);
+
+      if (parts.length === 0) {
+        return "";
+      }
+
+      // Prefer the value immediately after "movie".
+      const movieIndex = parts.findIndex(
+        part => part.toLowerCase() === "movie"
+      );
+
+      if (movieIndex !== -1 && parts[movieIndex + 1]) {
+        return parts[movieIndex + 1];
+      }
+
+      // Also support /embed/350787 and simply /350787.
+      return parts[parts.length - 1];
+    }
+
+    function isValidYouTubeId(id) {
+      return typeof id === "string" &&
+             /^[A-Za-z0-9_-]{11}$/.test(id);
+    }
+
+    function showError(title, message) {
+      loadingEl.innerHTML = `
+        <div class="error-message">
+          <strong>${escapeHtml(title)}</strong>
+          <div>${escapeHtml(message)}</div>
+          <small>Movie ID: ${escapeHtml(getMovieId() || "not specified")}</small>
+        </div>
+      `;
+      loadingEl.hidden = false;
+      playerInfoEl.hidden = true;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function showMovieInfo(movie) {
+      movieTitleEl.textContent = movie.title || "";
+      movieYearEl.textContent = movie.year || "";
+      movieQualityEl.textContent = movie.quality || "HD";
+      playerInfoEl.hidden = false;
+    }
+
+    function initPlayer() {
+      const movieId = getMovieId();
+
+      console.log("Movie ID:", movieId);
+
+      const movie = MOVIES[movieId];
+
+      if (!movie) {
+        showError(
+          "Movie not found",
+          "No YouTube video is configured for this movie ID."
+        );
+        return;
+      }
+
+      if (!isValidYouTubeId(movie.youtube_id)) {
+        showError(
+          "Invalid YouTube ID",
+          "The configured YouTube video ID must contain exactly 11 characters."
+        );
+        return;
+      }
+
+      showMovieInfo(movie);
+
+      // Clear any previous player.
+      if (plyrInstance) {
+        try {
+          plyrInstance.destroy();
+        } catch (e) {
+          console.warn("Could not destroy old player:", e);
+        }
+        plyrInstance = null;
+      }
+
+      playerEl.innerHTML = `
+        <div
+          id="youtube-player"
+          data-plyr-provider="youtube"
+          data-plyr-embed-id="${escapeHtml(movie.youtube_id)}">
+        </div>
+      `;
+
+      try {
+        /*
+          This is the important fix:
+          Plyr is initialized on the provider/element itself,
+          rather than creating a nested player incorrectly.
+        */
+        plyrInstance = new Plyr("#youtube-player", {
+          controls: [
+            "play-large",
+            "play",
+            "progress",
+            "current-time",
+            "duration",
+            "mute",
+            "volume",
+            "settings",
+            "pip",
+            "fullscreen"
+          ],
+
+          settings: ["quality", "speed"],
+
+          speed: {
+            selected: 1,
+            options: [0.5, 0.75, 1, 1.25, 1.5, 2]
+          },
+
+          youtube: {
+            noCookie: true,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1
+          },
+
+          fullscreen: {
+            enabled: true,
+            fallback: true,
+            iosNative: true
+          }
+        });
+
+        plyrInstance.on("ready", function() {
+          console.log("Plyr ready:", movie.title);
+          loadingEl.hidden = true;
+
+          // Autoplay may be blocked by the browser.
+          plyrInstance.play().catch(function() {
+            console.log("Autoplay blocked. User can press Play.");
+          });
+        });
+
+        plyrInstance.on("error", function(event) {
+          console.error("Plyr error:", event);
+          showError(
+            "Playback error",
+            "YouTube refused or could not load this video. Check that the video exists and allows embedding."
+          );
+        });
+
+      } catch (error) {
+        console.error("Player initialization error:", error);
+
+        showError(
+          "Player initialization failed",
+          error && error.message
+            ? error.message
+            : "Unknown player error."
+        );
+      }
+    }
+
+    function waitForPlyr() {
+      if (typeof Plyr === "undefined") {
+        showError(
+          "Player library failed to load",
+          "Plyr could not be loaded. Check your internet connection or CDN access."
+        );
+        return;
+      }
+
+      initPlayer();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", waitForPlyr);
+    } else {
+      waitForPlyr();
+    }
+  </script>
+</body>
+</html>
