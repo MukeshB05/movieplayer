@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Player</title>
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="player-container">
+        <div class="player-wrapper">
+            <!-- Loading overlay -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <span>Loading movie …</span>
+            </div>
+
+            <!-- Plyr container -->
+            <div id="player"></div>
+
+            <!-- Movie info overlay -->
+            <div id="playerInfo" class="player-info" style="display: none;">
+                <h2 id="movieTitle"></h2>
+                <div class="meta">
+                    <span id="movieYear"></span>
+                    <span class="badge" id="movieQuality"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plyr JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <!-- Custom JS -->
+    <script src="js/player.js"></script>
+</body>
+</html>
