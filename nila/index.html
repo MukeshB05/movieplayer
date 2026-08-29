@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Player</title>
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <style>
+        /* --- RESET & BASE --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b0b0b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            padding: 16px;
+        }
+
+        .player-container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .player-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            background: #0a0a0a;
+            border-radius: 20px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .player-wrapper:hover {
+            box-shadow: 0 28px 100px rgba(0, 0, 0, 1);
+        }
+
+        .player-wrapper #player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Movie info overlay */
+        .player-info {
+            position: absolute;
+            bottom: 80px;
+            left: 28px;
+            z-index: 20;
+            color: #fff;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            max-width: 80%;
+        }
+
+        .player-info h2 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .player-info .meta {
+            font-size: 14px;
+            opacity: 0.85;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .player-info .meta .badge {
+            background: rgba(255, 30, 30, 0.85);
+            padding: 3px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Loading state */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 16px;
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .spinner {
+            width: 52px;
+            height: 52px;
+            border: 4px solid rgba(255, 255, 255, 0.08);
+            border-top-color: #ff1a1a;
+            border-radius: 50%;
+            animation: spin 0.9s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #ff5a5a;
+            font-size: 17px;
+            padding: 24px 20px;
+            background: rgba(255, 0, 0, 0.08);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 70, 70, 0.25);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .error-message .error-icon {
+            font-size: 44px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* Plyr overrides */
+        .plyr--video {
+            background: #000;
+        }
+
+        .plyr__controls {
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.88)) !important;
+            padding: 24px 20px 18px !important;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .plyr__control--overlaid {
+            background: rgba(220, 20, 20, 0.9) !important;
+            border-radius: 50% !important;
+            transform: scale(1.2);
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 24px rgba(200, 0, 0, 0.5);
+        }
+
+        .plyr__control--overlaid:hover {
+            background: #ff1a1a !important;
+            transform: scale(1.35);
+            box-shadow: 0 8px 32px rgba(255, 0, 0, 0.6);
+        }
+
+        .plyr__control.plyr__control--overlaid {
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* Autoplay pulse animation */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.2); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.7; }
+        }
+
+        .pulse-animation {
+            animation: pulse 1.5s ease-in-out 3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .player-container { padding: 0; }
+            .player-wrapper { border-radius: 12px; }
+            .player-info {
+                bottom: 70px;
+                left: 18px;
+                right: 18px;
+                max-width: 90%;
+            }
+            .player-info h2 { font-size: 20px; }
+            .player-info .meta { font-size: 12px; gap: 10px; }
+            .plyr__controls { padding: 16px 12px !important; }
+        }
+
+        @media (max-width: 480px) {
+            .player-info h2 { font-size: 17px; }
+            .player-info .meta { font-size: 11px; gap: 8px; }
+            .player-info { bottom: 60px; left: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="player-wrapper">
+            <!-- Loading overlay -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <span>Loading movie …</span>
+            </div>
+
+            <!-- Plyr container -->
+            <div id="player"></div>
+
+            <!-- Movie info overlay -->
+            <div id="playerInfo" class="player-info" style="display: none;">
+                <h2 id="movieTitle"></h2>
+                <div class="meta">
+                    <span id="movieYear"></span>
+                    <span class="badge" id="movieQuality"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plyr JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script>
+        (function() {
+            "use strict";
+
+            // ================================================================
+            //  EMBEDDED JSON DATABASE (No external file needed)
+            // ================================================================
+            const VIDEOS_JSON = {
+                "videos": {
+                    "tt0111161": {
+                        "youtube_id": "6hB3S9bIaco",
+                        "title": "The Shawshank Redemption",
+                        "year": "1994",
+                        "quality": "4K HDR",
+                        "genre": "Drama"
+                    },
+                    "tt0068646": {
+                        "youtube_id": "sY1S34973zA",
+                        "title": "The Godfather",
+                        "year": "1972",
+                        "quality": "4K",
+                        "genre": "Crime"
+                    },
+                    "tt0071562": {
+                        "youtube_id": "qVz5cJQ3VgE",
+                        "title": "The Godfather Part II",
+                        "year": "1974",
+                        "quality": "HD",
+                        "genre": "Crime"
+                    },
+                    "tt0468569": {
+                        "youtube_id": "EXeTwQWrcwY",
+                        "title": "The Dark Knight",
+                        "year": "2008",
+                        "quality": "4K IMAX",
+                        "genre": "Action"
+                    },
+                    "tt0050083": {
+                        "youtube_id": "1gPj4bF6oE0",
+                        "title": "12 Angry Men",
+                        "year": "1957",
+                        "quality": "Restored",
+                        "genre": "Drama"
+                    },
+                    "tt0108052": {
+                        "youtube_id": "PSZxmZmBfnY",
+                        "title": "Schindler's List",
+                        "year": "1993",
+                        "quality": "4K",
+                        "genre": "Drama"
+                    },
+                    "tt0110912": {
+                        "youtube_id": "sY1S34973zA",
+                        "title": "Pulp Fiction",
+                        "year": "1994",
+                        "quality": "HD",
+                        "genre": "Crime"
+                    },
+                    "tt0060196": {
+                        "youtube_id": "1S3gG1P9i8U",
+                        "title": "The Good, the Bad and the Ugly",
+                        "year": "1966",
+                        "quality": "4K",
+                        "genre": "Western"
+                    },
+                    "tt0137523": {
+                        "youtube_id": "BdJKm16Co6M",
+                        "title": "Fight Club",
+                        "year": "1999",
+                        "quality": "HD",
+                        "genre": "Drama"
+                    },
+                    "tt1375666": {
+                        "youtube_id": "YoHD9XEInc0",
+                        "title": "Inception",
+                        "year": "2010",
+                        "quality": "4K HDR",
+                        "genre": "Sci-Fi"
+                    },
+                    "tt0499549": {
+                        "youtube_id": "5PSNL1qE6VY",
+                        "title": "Avatar",
+                        "year": "2009",
+                        "quality": "4K HDR",
+                        "genre": "Sci-Fi"
+                    },
+                    "tt0120737": {
+                        "youtube_id": "V75dMMIW2B4",
+                        "title": "The Lord of the Rings: The Fellowship of the Ring",
+                        "year": "2001",
+                        "quality": "4K",
+                        "genre": "Fantasy"
+                    },
+                    "tt0167260": {
+                        "youtube_id": "r5X-hFf6Bwo",
+                        "title": "The Lord of the Rings: The Return of the King",
+                        "year": "2003",
+                        "quality": "4K",
+                        "genre": "Fantasy"
+                    },
+                    "tt7286456": {
+                        "youtube_id": "uYPbbksJxIg",
+                        "title": "Joker",
+                        "year": "2019",
+                        "quality": "4K HDR",
+                        "genre": "Drama"
+                    },
+                    "tt15398776": {
+                        "youtube_id": "uLtkt8BonwM",
+                        "title": "Oppenheimer",
+                        "year": "2023",
+                        "quality": "4K HDR",
+                        "genre": "Drama"
+                    },
+                    "350787": {
+                        "youtube_id": "8B1rJhN-p2Y",
+                        "title": "Pandippada",
+                        "year": "2005",
+                        "quality": "HD",
+                        "genre": "Drama"
+                    },
+                    "351421": {
+                        "youtube_id": "dQw4w9WgXcQ",
+                        "title": "Your Movie Title",
+                        "year": "2024",
+                        "quality": "HD",
+                        "genre": "Drama"
+                    }
+                }
+            };
+
+            // DOM refs
+            const loadingEl = document.getElementById('loading');
+            const playerInfo = document.getElementById('playerInfo');
+            const movieTitle = document.getElementById('movieTitle');
+            const movieYear = document.getElementById('movieYear');
+            const movieQuality = document.getElementById('movieQuality');
+            const playerContainer = document.getElementById('player');
+
+            let playerInstance = null;
+            let autoplayAttempted = false;
+
+            // ================================================================
+            //  GET TMDB ID FROM URL (supports both formats)
+            // ================================================================
+            function getTmdbIdFromUrl() {
+                // Check for query parameter first (?id=xxx)
+                const urlParams = new URLSearchParams(window.location.search);
+                const idParam = urlParams.get('id');
+                if (idParam && idParam.match(/^(tt\d+|\d+)$/)) {
+                    console.log(`📌 Found ID from query parameter: ${idParam}`);
+                    return idParam;
+                }
+
+                // Check path (movie/351421)
+                const path = window.location.pathname;
+                const parts = path.split('/').filter(p => p.length > 0);
+                const lastPart = parts[parts.length - 1] || '';
+                if (lastPart.match(/^(tt\d+|\d+)$/)) {
+                    console.log(`📌 Found ID from path: ${lastPart}`);
+                    return lastPart;
+                }
+                
+                // Fallback to default
+                console.log('📌 No ID found, using default: tt0111161');
+                return 'tt0111161';
+            }
+
+            const tmdbId = getTmdbIdFromUrl();
+            console.log(`🎬 Final Movie ID: ${tmdbId}`);
+
+            // ================================================================
+            //  GET VIDEO DATA
+            // ================================================================
+            function getVideoById(id) {
+                if (!VIDEOS_JSON || !VIDEOS_JSON.videos) return null;
+                return VIDEOS_JSON.videos[id] || null;
+            }
+
+            // ================================================================
+            //  ATTEMPT AUTOPLAY
+            // ================================================================
+            function attemptAutoplay() {
+                if (autoplayAttempted || !playerInstance) return;
+                autoplayAttempted = true;
+                
+                try {
+                    const playPromise = playerInstance.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.log('⚠️ Autoplay was prevented:', error);
+                            const overlay = document.querySelector('.plyr__control--overlaid');
+                            if (overlay) {
+                                overlay.classList.add('pulse-animation');
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.log('⚠️ Autoplay error:', error);
+                }
+            }
+
+            // ================================================================
+            //  INIT PLAYER
+            // ================================================================
+            function initPlayer() {
+                try {
+                    const video = getVideoById(tmdbId);
+                    if (!video) {
+                        loadingEl.innerHTML = `
+                            <div class="error-message">
+                                <span class="error-icon">🎬</span>
+                                <strong>Movie not found</strong>
+                                <p style="margin-top: 8px; font-size: 14px; opacity: 0.7;">
+                                    No video available for ID: <span style="color:#fff;">${tmdbId}</span>
+                                </p>
+                                <p style="margin-top: 12px; font-size: 13px; opacity: 0.5;">
+                                    Try: tt0111161, tt0068646, tt0468569, 350787, 351421
+                                </p>
+                            </div>
+                        `;
+                        loadingEl.style.display = 'flex';
+                        return;
+                    }
+
+                    // Update movie info
+                    movieTitle.textContent = video.title || 'Untitled';
+                    movieYear.textContent = video.year || '';
+                    movieQuality.textContent = video.quality || 'HD';
+                    playerInfo.style.display = 'block';
+
+                    // Clear loading
+                    loadingEl.style.display = 'none';
+
+                    // Create YouTube embed with Plyr
+                    playerContainer.innerHTML = `
+                        <div id="youtube-player" data-plyr-provider="youtube" data-plyr-embed-id="${video.youtube_id}"></div>
+                    `;
+
+                    const youtubeDiv = document.getElementById('youtube-player');
+                    if (!youtubeDiv) {
+                        throw new Error('YouTube container missing');
+                    }
+
+                    // Initialize Plyr
+                    playerInstance = new Plyr(youtubeDiv, {
+                        controls: [
+                            'play-large', 'play', 'progress', 'current-time',
+                            'duration', 'mute', 'volume', 'captions',
+                            'settings', 'pip', 'airplay', 'fullscreen'
+                        ],
+                        settings: ['quality', 'speed'],
+                        quality: {
+                            default: 'hd720',
+                            options: ['hd1080', 'hd720', 'auto']
+                        },
+                        speed: {
+                            selected: 1,
+                            options: [0.5, 0.75, 1, 1.25, 1.5, 2]
+                        },
+                        keyboard: { focused: true, global: true },
+                        tooltips: { controls: true, seek: true },
+                        captions: { active: true, language: 'en', update: true },
+                        fullscreen: { enabled: true, fallback: true, iosNative: true },
+                        storage: { enabled: true, key: 'plyr_movie' },
+                        youtube: {
+                            autoplay: 1,
+                            rel: 0,
+                            modestbranding: 1,
+                            showinfo: 0,
+                            iv_load_policy: 3,
+                            playsinline: 1,
+                            enablejsapi: 1
+                        }
+                    });
+
+                    // Event handlers
+                    playerInstance.on('ready', () => {
+                        console.log(`✅ Player ready: ${video.title}`);
+                        setTimeout(attemptAutoplay, 500);
+                    });
+
+                    playerInstance.on('play', () => {
+                        console.log('▶️ Video playing');
+                        autoplayAttempted = true;
+                        const overlay = document.querySelector('.plyr__control--overlaid');
+                        if (overlay) {
+                            overlay.classList.remove('pulse-animation');
+                        }
+                    });
+
+                    playerInstance.on('error', (error) => {
+                        console.warn('⚠️ Plyr error:', error);
+                        if (!autoplayAttempted) {
+                            const overlay = document.querySelector('.plyr__control--overlaid');
+                            if (overlay) {
+                                overlay.style.display = 'flex';
+                                overlay.classList.add('pulse-animation');
+                            }
+                        }
+                    });
+
+                    // Try autoplay when user interacts
+                    document.addEventListener('click', () => {
+                        if (!autoplayAttempted) {
+                            attemptAutoplay();
+                        }
+                    }, { once: true });
+
+                    document.addEventListener('touchstart', () => {
+                        if (!autoplayAttempted) {
+                            attemptAutoplay();
+                        }
+                    }, { once: true });
+
+                } catch (error) {
+                    console.error('❌ Error initializing player:', error);
+                    showError('Failed to load player', error.message || 'Unknown error');
+                }
+            }
+
+            // ================================================================
+            //  ERROR HANDLING
+            // ================================================================
+            function showError(title, message) {
+                loadingEl.innerHTML = `
+                    <div class="error-message">
+                        <span class="error-icon">⚠️</span>
+                        <strong>${title}</strong>
+                        <p style="margin-top: 8px; font-size: 14px; opacity: 0.7;">
+                            ${message}
+                        </p>
+                    </div>
+                `;
+                loadingEl.style.display = 'flex';
+                playerInfo.style.display = 'none';
+            }
+
+            // ================================================================
+            //  SAFE START
+            // ================================================================
+            function safeInit() {
+                if (typeof Plyr !== 'undefined') {
+                    setTimeout(initPlayer, 100);
+                } else {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        let attempts = 0;
+                        const interval = setInterval(() => {
+                            attempts++;
+                            if (typeof Plyr !== 'undefined') {
+                                clearInterval(interval);
+                                setTimeout(initPlayer, 100);
+                            } else if (attempts > 30) {
+                                clearInterval(interval);
+                                showError('Library load timeout', 'Please check your connection.');
+                            }
+                        }, 120);
+                    });
+                }
+            }
+
+            safeInit();
+
+            // ================================================================
+            //  RESIZE HELPER
+            // ================================================================
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (playerInstance && playerInstance.embed) {
+                        const iframe = document.querySelector('#youtube-player iframe');
+                        if (iframe) {
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100%';
+                        }
+                    }
+                }, 200);
+            });
+
+        })();
+    </script>
+</body>
+</html>
