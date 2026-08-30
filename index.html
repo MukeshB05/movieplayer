@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com; frame-src https://www.youtube.com; style-src 'unsafe-inline';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Movie Player</title>
 
@@ -137,6 +138,24 @@
       font-weight: 700;
     }
 
+    .retry-btn {
+      margin-top: 15px;
+      padding: 10px 24px;
+      background: #e50914;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: background 0.3s;
+    }
+
+    .retry-btn:hover {
+      background: #f40612;
+    }
+
     @media (max-width: 600px) {
       body { padding: 0; }
 
@@ -179,24 +198,10 @@
     </section>
   </main>
 
-  <!-- YouTube IFrame API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-
   <script>
     "use strict";
 
-    /*
-      MOVIE DATABASE
-
-      Supported URLs:
-        /embed/movie/tt0111161
-        /embed/movie/350787
-        /movie/tt0111161
-        /?id=tt0111161
-        /?tmdb=350787
-        /?movie=350787
-    */
-
+    // MOVIE DATABASE
     const MOVIES = {
       "tt0111161": {
         youtube_id: "6hB3S9bIaco",
@@ -224,21 +229,24 @@
       }
     };
 
+    // DOM Elements
     const loadingEl = document.getElementById("loading");
     const playerEl = document.getElementById("player");
     const playerInfoEl = document.getElementById("playerInfo");
     const movieTitleEl = document.getElementById("movieTitle");
     const movieYearEl = document.getElementById("movieYear");
     const movieQualityEl = document.getElementById("movieQuality");
+    const loadingTextEl = document.getElementById("loadingText");
 
     let youtubePlayer = null;
     let apiReady = false;
-    let initialized = false;
-    let initAttempted = false;
+    let playerReady = false;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
+    // Utility Functions
     function cleanId(value) {
       if (!value) return "";
-
       try {
         return decodeURIComponent(String(value))
           .trim()
@@ -281,25 +289,7 @@
     }
 
     function isValidYouTubeId(id) {
-      return (
-        typeof id === "string" &&
-        /^[A-Za-z0-9_-]{11}$/.test(id)
-      );
-    }
-
-    function showError(title, message) {
-      loadingEl.innerHTML = `
-        <div class="error-message">
-          <strong>${escapeHtml(title)}</strong>
-          <div>${escapeHtml(message)}</div>
-          <small>
-            Movie ID: ${escapeHtml(getMovieId() || "not specified")}
-          </small>
-        </div>
-      `;
-
-      loadingEl.hidden = false;
-      playerInfoEl.hidden = true;
+      return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id);
     }
 
     function escapeHtml(value) {
@@ -311,6 +301,21 @@
         .replace(/'/g, "&#039;");
     }
 
+    function showError(title, message, showRetry = true) {
+      loadingEl.innerHTML = `
+        <div class="error-message">
+          <strong>${escapeHtml(title)}</strong>
+          <div>${escapeHtml(message)}</div>
+          <small>
+            Movie ID: ${escapeHtml(getMovieId() || "not specified")}
+          </small>
+          ${showRetry ? `<button class="retry-btn" onclick="retryLoad()">Retry</button>` : ''}
+        </div>
+      `;
+      loadingEl.hidden = false;
+      playerInfoEl.hidden = true;
+    }
+
     function showMovieInfo(movie) {
       movieTitleEl.textContent = movie.title || "";
       movieYearEl.textContent = movie.year || "";
@@ -320,68 +325,59 @@
 
     function getPlayerErrorMessage(code) {
       switch (code) {
-        case 2:
-          return "Invalid YouTube video ID.";
-        case 5:
-          return "The YouTube HTML5 player could not play this video.";
-        case 100:
-          return "This YouTube video does not exist or has been removed.";
+        case 2: return "Invalid YouTube video ID.";
+        case 5: return "The YouTube HTML5 player could not play this video.";
+        case 100: return "This YouTube video does not exist or has been removed.";
         case 101:
-        case 150:
-          return "This video does not allow playback in an embedded player.";
-        default:
-          return "YouTube could not load this video.";
+        case 150: return "This video does not allow playback in an embedded player.";
+        default: return "YouTube could not load this video.";
       }
     }
 
+    // YouTube Player Functions
     function createYouTubePlayer(movie) {
-      if (initialized) return;
+      if (playerReady) return;
 
-      // Check if YT is available
       if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
-        // Try loading the API again
+        loadingTextEl.textContent = "Loading YouTube player...";
         loadYouTubeAPI();
         return;
       }
 
-      initialized = true;
-
-      // Clear any existing content
-      playerEl.innerHTML = "";
-
       try {
+        playerReady = true;
+        loadingTextEl.textContent = "Initializing player...";
+
+        playerEl.innerHTML = "";
+
         youtubePlayer = new YT.Player("player", {
           width: "100%",
           height: "100%",
           videoId: movie.youtube_id,
-
           playerVars: {
-            autoplay: 0,
+            autoplay: 1,
             controls: 1,
             rel: 0,
             playsinline: 1,
             modestbranding: 1,
-            iv_load_policy: 3
+            iv_load_policy: 3,
+            enablejsapi: 1,
+            origin: window.location.origin
           },
-
           events: {
             onReady: function(event) {
               console.log("YouTube player ready:", movie.title);
               loadingEl.hidden = true;
             },
-
             onStateChange: function(event) {
               console.log("YouTube state:", event.data);
-
               if (event.data === YT.PlayerState.PLAYING) {
                 loadingEl.hidden = true;
               }
             },
-
             onError: function(event) {
               console.error("YouTube error:", event.data);
-              initialized = false;
-
+              playerReady = false;
               showError(
                 "Playback error",
                 getPlayerErrorMessage(event.data)
@@ -391,49 +387,61 @@
         });
       } catch (error) {
         console.error("Error creating YouTube player:", error);
-        initialized = false;
+        playerReady = false;
         showError(
           "Player creation error",
-          "Failed to create YouTube player. Please refresh the page."
+          "Failed to create YouTube player. Please try again."
         );
       }
     }
 
     function loadYouTubeAPI() {
       if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-        // API script already exists, wait for it to load
         return;
       }
 
+      loadingTextEl.textContent = "Loading YouTube player...";
+      
       const script = document.createElement("script");
       script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
+      script.onerror = function() {
+        console.error("Failed to load YouTube API");
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          loadingTextEl.textContent = `Retrying... (${retryCount}/${MAX_RETRIES})`;
+          setTimeout(loadYouTubeAPI, 2000);
+        } else {
+          showError(
+            "YouTube API Error",
+            "Failed to load YouTube player. Please check your internet connection.",
+            true
+          );
+        }
+      };
       document.head.appendChild(script);
     }
 
+    // Main Initialization
     function initMovie() {
-      // Prevent multiple initialization attempts
-      if (initAttempted) return;
-      initAttempted = true;
-
       const movieId = getMovieId();
-
       console.log("Movie ID:", movieId);
 
       if (!movieId) {
         showError(
           "Movie ID missing",
-          "Open this page with ?id=350787 or /movie/350787."
+          "Open this page with ?id=350787 or /movie/350787.",
+          false
         );
         return;
       }
 
       const movie = MOVIES[movieId];
-
       if (!movie) {
         showError(
           "Movie not found",
-          "No movie is configured for this movie ID."
+          `No movie is configured for ID: ${movieId}`,
+          false
         );
         return;
       }
@@ -441,72 +449,81 @@
       if (!isValidYouTubeId(movie.youtube_id)) {
         showError(
           "Invalid YouTube ID",
-          "The configured YouTube video ID must contain exactly 11 characters."
+          "The configured YouTube video ID must contain exactly 11 characters.",
+          false
         );
         return;
       }
 
       showMovieInfo(movie);
 
-      if (apiReady && typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
+      if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
+        apiReady = true;
         createYouTubePlayer(movie);
       } else {
-        loadingEl.hidden = false;
-        document.getElementById("loadingText").textContent =
-          "Loading YouTube player...";
-        
-        // Try loading the API if it's not available
-        if (typeof YT === "undefined") {
-          loadYouTubeAPI();
-        }
+        loadingTextEl.textContent = "Loading YouTube player...";
+        loadYouTubeAPI();
       }
     }
 
-    /*
-      YouTube automatically calls this function after
-      https://www.youtube.com/iframe_api has loaded.
-    */
+    // Retry Function
+    window.retryLoad = function() {
+      retryCount = 0;
+      playerReady = false;
+      apiReady = false;
+      loadingEl.innerHTML = `
+        <div class="spinner"></div>
+        <div id="loadingText">Retrying...</div>
+      `;
+      loadingEl.hidden = false;
+      // Re-initialize
+      setTimeout(initMovie, 500);
+    };
+
+    // YouTube API Callback
     window.onYouTubeIframeAPIReady = function() {
       console.log("YouTube IFrame API loaded");
       apiReady = true;
-      
-      // Reset init flag to allow initialization
-      initAttempted = false;
+      retryCount = 0;
       initMovie();
     };
 
-    // Check for API load errors
+    // Fallback if API doesn't load
     window.onYouTubeIframeAPIError = function() {
       console.error("YouTube IFrame API failed to load");
-      showError(
-        "YouTube API Error",
-        "Failed to load YouTube IFrame API. Please check your internet connection and refresh the page."
-      );
+      if (retryCount < MAX_RETRIES) {
+        retryCount++;
+        loadingTextEl.textContent = `Retrying... (${retryCount}/${MAX_RETRIES})`;
+        setTimeout(loadYouTubeAPI, 2000);
+      } else {
+        showError(
+          "YouTube API Error",
+          "Failed to load YouTube player. Please refresh the page.",
+          true
+        );
+      }
     };
 
-    // Start after DOM is ready
+    // Initialize on DOM ready
     document.addEventListener("DOMContentLoaded", function() {
-      // Check if API is already loaded
       if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
         apiReady = true;
-        initMovie();
-      } else {
-        // Wait for the API to load
-        initMovie();
       }
+      initMovie();
     });
 
-    // Fallback: If API doesn't load within 10 seconds, show error
+    // Timeout fallback
     setTimeout(function() {
-      if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
-        if (!initAttempted || loadingEl.hidden === false) {
+      if (loadingEl.hidden === false && !playerReady) {
+        if (retryCount >= MAX_RETRIES) {
           showError(
-            "YouTube API timeout",
-            "YouTube IFrame API failed to load. Please refresh the page or check your internet connection."
+            "Loading timeout",
+            "The player took too long to load. Please try again.",
+            true
           );
         }
       }
-    }, 10000);
+    }, 15000);
   </script>
 </body>
 </html>
