@@ -204,21 +204,18 @@
         year: "1994",
         quality: "4K HDR"
       },
-
       "tt0068646": {
         youtube_id: "sY1S34973zA",
         title: "The Godfather",
         year: "1972",
         quality: "4K"
       },
-
       "351421": {
         youtube_id: "s6P9QNj2_o0",
         title: "The Dark Knight",
         year: "2008",
         quality: "4K IMAX"
       },
-
       "350787": {
         youtube_id: "3IqGqL-FyQk",
         title: "Pandippada",
@@ -237,6 +234,7 @@
     let youtubePlayer = null;
     let apiReady = false;
     let initialized = false;
+    let initAttempted = false;
 
     function cleanId(value) {
       if (!value) return "";
@@ -339,69 +337,85 @@
     function createYouTubePlayer(movie) {
       if (initialized) return;
 
-      if (!window.YT || !window.YT.Player) {
-        showError(
-          "YouTube API not ready",
-          "The YouTube IFrame API has not finished loading."
-        );
+      // Check if YT is available
+      if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
+        // Try loading the API again
+        loadYouTubeAPI();
         return;
       }
 
       initialized = true;
 
+      // Clear any existing content
       playerEl.innerHTML = "";
 
-      youtubePlayer = new YT.Player("player", {
-        width: "100%",
-        height: "100%",
-        videoId: movie.youtube_id,
+      try {
+        youtubePlayer = new YT.Player("player", {
+          width: "100%",
+          height: "100%",
+          videoId: movie.youtube_id,
 
-        playerVars: {
-          autoplay: 0,
-          controls: 1,
-          rel: 0,
-          playsinline: 1,
-          modestbranding: 1,
-          iv_load_policy: 3
-        },
-
-        events: {
-
-          onReady: function(event) {
-            console.log("YouTube player ready:", movie.title);
-            loadingEl.hidden = true;
-
-            /*
-              Autoplay is intentionally disabled because
-              mobile browsers may block autoplay.
-              The user can press the YouTube Play button.
-            */
+          playerVars: {
+            autoplay: 0,
+            controls: 1,
+            rel: 0,
+            playsinline: 1,
+            modestbranding: 1,
+            iv_load_policy: 3
           },
 
-          onStateChange: function(event) {
-            console.log("YouTube state:", event.data);
-
-            if (event.data === YT.PlayerState.PLAYING) {
+          events: {
+            onReady: function(event) {
+              console.log("YouTube player ready:", movie.title);
               loadingEl.hidden = true;
+            },
+
+            onStateChange: function(event) {
+              console.log("YouTube state:", event.data);
+
+              if (event.data === YT.PlayerState.PLAYING) {
+                loadingEl.hidden = true;
+              }
+            },
+
+            onError: function(event) {
+              console.error("YouTube error:", event.data);
+              initialized = false;
+
+              showError(
+                "Playback error",
+                getPlayerErrorMessage(event.data)
+              );
             }
-          },
-
-          onError: function(event) {
-            console.error("YouTube error:", event.data);
-
-            initialized = false;
-
-            showError(
-              "Playback error",
-              getPlayerErrorMessage(event.data)
-            );
           }
+        });
+      } catch (error) {
+        console.error("Error creating YouTube player:", error);
+        initialized = false;
+        showError(
+          "Player creation error",
+          "Failed to create YouTube player. Please refresh the page."
+        );
+      }
+    }
 
-        }
-      });
+    function loadYouTubeAPI() {
+      if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        // API script already exists, wait for it to load
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.appendChild(script);
     }
 
     function initMovie() {
+      // Prevent multiple initialization attempts
+      if (initAttempted) return;
+      initAttempted = true;
+
       const movieId = getMovieId();
 
       console.log("Movie ID:", movieId);
@@ -434,12 +448,17 @@
 
       showMovieInfo(movie);
 
-      if (apiReady) {
+      if (apiReady && typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
         createYouTubePlayer(movie);
       } else {
         loadingEl.hidden = false;
         document.getElementById("loadingText").textContent =
           "Loading YouTube player...";
+        
+        // Try loading the API if it's not available
+        if (typeof YT === "undefined") {
+          loadYouTubeAPI();
+        }
       }
     }
 
@@ -449,32 +468,45 @@
     */
     window.onYouTubeIframeAPIReady = function() {
       console.log("YouTube IFrame API loaded");
-
       apiReady = true;
-
+      
+      // Reset init flag to allow initialization
+      initAttempted = false;
       initMovie();
     };
 
-    /*
-      Start after DOM is ready.
-    */
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", function() {
-        /*
-          If API has already loaded, initialize immediately.
-          Otherwise onYouTubeIframeAPIReady() will initialize it.
-        */
-        if (window.YT && window.YT.Player) {
-          apiReady = true;
-          initMovie();
-        }
-      });
-    } else {
-      if (window.YT && window.YT.Player) {
+    // Check for API load errors
+    window.onYouTubeIframeAPIError = function() {
+      console.error("YouTube IFrame API failed to load");
+      showError(
+        "YouTube API Error",
+        "Failed to load YouTube IFrame API. Please check your internet connection and refresh the page."
+      );
+    };
+
+    // Start after DOM is ready
+    document.addEventListener("DOMContentLoaded", function() {
+      // Check if API is already loaded
+      if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
         apiReady = true;
         initMovie();
+      } else {
+        // Wait for the API to load
+        initMovie();
       }
-    }
+    });
+
+    // Fallback: If API doesn't load within 10 seconds, show error
+    setTimeout(function() {
+      if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
+        if (!initAttempted || loadingEl.hidden === false) {
+          showError(
+            "YouTube API timeout",
+            "YouTube IFrame API failed to load. Please refresh the page or check your internet connection."
+          );
+        }
+      }
+    }, 10000);
   </script>
 </body>
 </html>
