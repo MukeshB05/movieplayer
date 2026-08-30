@@ -4,396 +4,86 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Movie Player</title>
-
   <style>
     * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      width: 100%;
-      min-height: 100%;
-      background: #000;
-      color: #fff;
-      font-family: Arial, sans-serif;
-    }
-
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-    }
-
-    .player-container {
-      width: 100%;
-      max-width: 1280px;
-    }
-
-    .player-wrapper {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      overflow: hidden;
-      background: #000;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.75);
-    }
-
-    #player {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    #player iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-    }
-
-    .loading {
-      position: absolute;
-      inset: 0;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      background: #000;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-      transition: opacity 0.5s ease;
-    }
-
-    .loading.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid rgba(255,255,255,.15);
-      border-top-color: #e50914;
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .error-message {
-      max-width: 600px;
-      padding: 22px;
-      border: 1px solid rgba(255,80,80,.35);
-      border-radius: 14px;
-      background: rgba(255,0,0,.08);
-      line-height: 1.5;
-    }
-
-    .error-message strong {
-      display: block;
-      font-size: 18px;
-      margin-bottom: 8px;
-    }
-
-    .error-message small {
-      display: block;
-      margin-top: 10px;
-      opacity: .7;
-      word-break: break-word;
-    }
-
-    .retry-btn {
-      margin-top: 15px;
-      padding: 10px 24px;
-      background: #e50914;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      pointer-events: auto;
-      transition: background 0.3s;
-    }
-
-    .retry-btn:hover {
-      background: #f40612;
-    }
-
-    .player-info {
-      position: absolute;
-      z-index: 10;
-      left: 22px;
-      right: 22px;
-      bottom: 72px;
-      pointer-events: none;
-      text-shadow: 0 2px 14px #000;
-    }
-
-    .player-info h1 {
-      margin: 0 0 6px;
-      font-size: 25px;
-      font-weight: 700;
-    }
-
-    .meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      font-size: 14px;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: #e50914;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    @media (max-width: 600px) {
-      body { padding: 0; }
-
-      .player-wrapper {
-        border-radius: 0;
-        min-height: 56.25vw;
-      }
-
-      .player-info {
-        left: 14px;
-        right: 14px;
-        bottom: 62px;
-      }
-
-      .player-info h1 { font-size: 18px; }
-      .meta { font-size: 12px; }
-    }
+    html, body { margin:0; width:100%; min-height:100%; background:#000; color:#fff; font-family:Arial,sans-serif; }
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px; }
+    .player-container { width:100%; max-width:1280px; }
+    .player-wrapper { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; background:#000; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.75); }
+    #player { position:absolute; inset:0; width:100%; height:100%; }
+    #player iframe { width:100%; height:100%; border:0; display:block; }
+    .loading { position:absolute; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:#000; color:#fff; text-align:center; padding:20px; transition:opacity .5s ease; }
+    .loading.hidden { opacity:0; pointer-events:none; }
+    .spinner { width:48px; height:48px; border:4px solid rgba(255,255,255,.15); border-top-color:#e50914; border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .error-message { max-width:600px; padding:22px; border:1px solid rgba(255,80,80,.35); border-radius:14px; background:rgba(255,0,0,.08); line-height:1.5; }
+    .error-message strong { display:block; font-size:18px; margin-bottom:8px; }
+    .error-message small { display:block; margin-top:10px; opacity:.7; word-break:break-word; }
+    .retry-btn { margin-top:15px; padding:10px 24px; background:#e50914; color:#fff; border:none; border-radius:4px; font-size:14px; font-weight:600; cursor:pointer; transition:background .3s; }
+    .retry-btn:hover { background:#f40612; }
+    @media (max-width:600px) { body { padding:0; } .player-wrapper { border-radius:0; min-height:56.25vw; } }
   </style>
 </head>
-
 <body>
   <main class="player-container">
-    <section class="player-wrapper" id="playerWrapper">
-
+    <section class="player-wrapper">
       <div class="loading" id="loading">
         <div class="spinner"></div>
         <div id="loadingText">Loading movie...</div>
       </div>
-
       <div id="player"></div>
-
+      <!-- player-info removed entirely -->
     </section>
   </main>
-
   <script>
     "use strict";
-
-    // MOVIE DATABASE
     const MOVIES = {
-      "tt0111161": {
-        youtube_id: "6hB3S9bIaco",
-        title: "The Shawshank Redemption",
-        year: "1994",
-        quality: "4K HDR"
-      },
-      "tt0068646": {
-        youtube_id: "sY1S34973zA",
-        title: "The Godfather",
-        year: "1972",
-        quality: "4K"
-      },
-      "351421": {
-        youtube_id: "s6P9QNj2_o0",
-        title: "The Dark Knight",
-        year: "2008",
-        quality: "4K IMAX"
-      },
-      "350787": {
-        youtube_id: "3IqGqL-FyQk",
-        title: "Pandippada",
-        year: "2005",
-        quality: "HD"
-      }
+      "tt0111161": { youtube_id: "6hB3S9bIaco", title: "The Shawshank Redemption", year: "1994", quality: "4K HDR" },
+      "tt0068646": { youtube_id: "sY1S34973zA", title: "The Godfather", year: "1972", quality: "4K" },
+      "351421": { youtube_id: "s6P9QNj2_o0", title: "The Dark Knight", year: "2008", quality: "4K IMAX" },
+      "350787": { youtube_id: "3IqGqL-FyQk", title: "Pandippada", year: "2005", quality: "HD" }
     };
-
-    // DOM Elements
     const loadingEl = document.getElementById("loading");
     const loadingTextEl = document.getElementById("loadingText");
     const playerEl = document.getElementById("player");
-    const playerInfoEl = document.getElementById("playerInfo");
-    const movieTitleEl = document.getElementById("movieTitle");
-    const movieYearEl = document.getElementById("movieYear");
-    const movieQualityEl = document.getElementById("movieQuality");
 
-    // Utility Functions
-    function cleanId(value) {
-      if (!value) return "";
-      try {
-        return decodeURIComponent(String(value))
-          .trim()
-          .replace(/^\/+|\/+$/g, "");
-      } catch (error) {
-        return String(value)
-          .trim()
-          .replace(/^\/+|\/+$/g, "");
-      }
-    }
-
+    function cleanId(v) { if (!v) return ""; try { return decodeURIComponent(String(v)).trim().replace(/^\/+|\/+$/g,""); } catch(e) { return String(v).trim().replace(/^\/+|\/+$/g,""); } }
     function getMovieId() {
       const url = new URL(window.location.href);
-
-      const queryId =
-        url.searchParams.get("id") ||
-        url.searchParams.get("tmdb") ||
-        url.searchParams.get("movie");
-
-      if (queryId) {
-        return cleanId(queryId);
-      }
-
-      const parts = url.pathname
-        .split("/")
-        .map(cleanId)
-        .filter(Boolean);
-
+      const q = url.searchParams.get("id") || url.searchParams.get("tmdb") || url.searchParams.get("movie");
+      if (q) return cleanId(q);
+      const parts = url.pathname.split("/").map(cleanId).filter(Boolean);
       if (!parts.length) return "";
-
-      const movieIndex = parts.findIndex(
-        part => part.toLowerCase() === "movie"
-      );
-
-      if (movieIndex !== -1 && parts[movieIndex + 1]) {
-        return parts[movieIndex + 1];
-      }
-
-      return parts[parts.length - 1];
+      const idx = parts.findIndex(p => p.toLowerCase() === "movie");
+      return idx !== -1 && parts[idx+1] ? parts[idx+1] : parts[parts.length-1];
     }
-
-    function isValidYouTubeId(id) {
-      return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id);
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    function showError(title, message, showRetry = true) {
-      loadingEl.innerHTML = `
-        <div class="error-message">
-          <strong>${escapeHtml(title)}</strong>
-          <div>${escapeHtml(message)}</div>
-          <small>
-            Movie ID: ${escapeHtml(getMovieId() || "not specified")}
-          </small>
-          ${showRetry ? `<button class="retry-btn" onclick="location.reload()">Retry</button>` : ''}
-        </div>
-      `;
+    function isValidYouTubeId(id) { return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id); }
+    function escapeHtml(v) { return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
+    function showError(title, message, showRetry=true) {
+      loadingEl.innerHTML = `<div class="error-message"><strong>${escapeHtml(title)}</strong><div>${escapeHtml(message)}</div><small>Movie ID: ${escapeHtml(getMovieId()||"not specified")}</small>${showRetry ? `<button class="retry-btn" onclick="location.reload()">Retry</button>` : ''}</div>`;
       loadingEl.classList.remove("hidden");
-      playerInfoEl.hidden = true;
     }
+    function hideLoading() { loadingEl.classList.add("hidden"); setTimeout(()=>{ loadingEl.style.display="none"; },500); }
 
-    function showMovieInfo(movie) {
-      movieTitleEl.textContent = movie.title || "";
-      movieYearEl.textContent = movie.year || "";
-      movieQualityEl.textContent = movie.quality || "HD";
-      playerInfoEl.hidden = false;
-    }
-
-    function hideLoading() {
-      loadingEl.classList.add("hidden");
-      // After transition, hide completely
-      setTimeout(() => {
-        loadingEl.style.display = "none";
-      }, 500);
-    }
-
-    // Main Initialization
     function initMovie() {
       const movieId = getMovieId();
-      console.log("Movie ID:", movieId);
-
-      if (!movieId) {
-        showError(
-          "Movie ID missing",
-          "Open this page with ?id=350787 or /movie/350787.",
-          false
-        );
-        return;
-      }
-
+      if (!movieId) { showError("Movie ID missing","Open this page with ?id=350787 or /movie/350787.",false); return; }
       const movie = MOVIES[movieId];
-      if (!movie) {
-        showError(
-          "Movie not found",
-          `No movie is configured for ID: ${movieId}`,
-          false
-        );
-        return;
-      }
+      if (!movie) { showError("Movie not found",`No movie configured for ID: ${movieId}`,false); return; }
+      if (!isValidYouTubeId(movie.youtube_id)) { showError("Invalid YouTube ID","The configured YouTube video ID must contain exactly 11 characters.",false); return; }
 
-      if (!isValidYouTubeId(movie.youtube_id)) {
-        showError(
-          "Invalid YouTube ID",
-          "The configured YouTube video ID must contain exactly 11 characters.",
-          false
-        );
-        return;
-      }
-
-      showMovieInfo(movie);
-
-      // Create the iframe
       const iframe = document.createElement('iframe');
       iframe.src = `https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1&controls=1&rel=0&playsinline=1&modestbranding=1`;
       iframe.allow = "autoplay; encrypted-media; fullscreen";
       iframe.allowFullscreen = true;
-      iframe.setAttribute('loading', 'lazy');
-
-      // When iframe loads, hide loading
-      iframe.onload = function() {
-        hideLoading();
-        loadingTextEl.textContent = "Movie loaded";
-      };
-
-      // If iframe fails, show error
-      iframe.onerror = function() {
-        showError(
-          "Failed to load video",
-          "The YouTube video could not be loaded. Please try again.",
-          true
-        );
-      };
-
-      // Clear and append
+      iframe.setAttribute('loading','lazy');
+      iframe.onload = function() { hideLoading(); loadingTextEl.textContent = "Movie loaded"; };
+      iframe.onerror = function() { showError("Failed to load video","The YouTube video could not be loaded. Please try again.",true); };
       playerEl.innerHTML = '';
       playerEl.appendChild(iframe);
-
-      // **Fallback: hide loading after 3 seconds even if onload doesn't fire**
-      // This ensures the overlay doesn't stay forever (e.g., onload may not fire if video is cached)
-      setTimeout(() => {
-        if (!loadingEl.classList.contains("hidden")) {
-          hideLoading();
-          loadingTextEl.textContent = "Video ready";
-        }
-      }, 3000);
+      // fallback hide after 3s
+      setTimeout(() => { if (!loadingEl.classList.contains("hidden")) { hideLoading(); loadingTextEl.textContent = "Video ready"; } }, 3000);
     }
-
-    // Start on DOM ready
     document.addEventListener("DOMContentLoaded", initMovie);
   </script>
 </body>
