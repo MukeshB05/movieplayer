@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com; frame-src https://www.youtube.com; style-src 'unsafe-inline';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Movie Player</title>
 
@@ -238,12 +237,6 @@
     const movieQualityEl = document.getElementById("movieQuality");
     const loadingTextEl = document.getElementById("loadingText");
 
-    let youtubePlayer = null;
-    let apiReady = false;
-    let playerReady = false;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-
     // Utility Functions
     function cleanId(value) {
       if (!value) return "";
@@ -309,7 +302,7 @@
           <small>
             Movie ID: ${escapeHtml(getMovieId() || "not specified")}
           </small>
-          ${showRetry ? `<button class="retry-btn" onclick="retryLoad()">Retry</button>` : ''}
+          ${showRetry ? `<button class="retry-btn" onclick="location.reload()">Retry</button>` : ''}
         </div>
       `;
       loadingEl.hidden = false;
@@ -323,106 +316,7 @@
       playerInfoEl.hidden = false;
     }
 
-    function getPlayerErrorMessage(code) {
-      switch (code) {
-        case 2: return "Invalid YouTube video ID.";
-        case 5: return "The YouTube HTML5 player could not play this video.";
-        case 100: return "This YouTube video does not exist or has been removed.";
-        case 101:
-        case 150: return "This video does not allow playback in an embedded player.";
-        default: return "YouTube could not load this video.";
-      }
-    }
-
-    // YouTube Player Functions
-    function createYouTubePlayer(movie) {
-      if (playerReady) return;
-
-      if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
-        loadingTextEl.textContent = "Loading YouTube player...";
-        loadYouTubeAPI();
-        return;
-      }
-
-      try {
-        playerReady = true;
-        loadingTextEl.textContent = "Initializing player...";
-
-        playerEl.innerHTML = "";
-
-        youtubePlayer = new YT.Player("player", {
-          width: "100%",
-          height: "100%",
-          videoId: movie.youtube_id,
-          playerVars: {
-            autoplay: 1,
-            controls: 1,
-            rel: 0,
-            playsinline: 1,
-            modestbranding: 1,
-            iv_load_policy: 3,
-            enablejsapi: 1,
-            origin: window.location.origin
-          },
-          events: {
-            onReady: function(event) {
-              console.log("YouTube player ready:", movie.title);
-              loadingEl.hidden = true;
-            },
-            onStateChange: function(event) {
-              console.log("YouTube state:", event.data);
-              if (event.data === YT.PlayerState.PLAYING) {
-                loadingEl.hidden = true;
-              }
-            },
-            onError: function(event) {
-              console.error("YouTube error:", event.data);
-              playerReady = false;
-              showError(
-                "Playback error",
-                getPlayerErrorMessage(event.data)
-              );
-            }
-          }
-        });
-      } catch (error) {
-        console.error("Error creating YouTube player:", error);
-        playerReady = false;
-        showError(
-          "Player creation error",
-          "Failed to create YouTube player. Please try again."
-        );
-      }
-    }
-
-    function loadYouTubeAPI() {
-      if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-        return;
-      }
-
-      loadingTextEl.textContent = "Loading YouTube player...";
-      
-      const script = document.createElement("script");
-      script.src = "https://www.youtube.com/iframe_api";
-      script.async = true;
-      script.onerror = function() {
-        console.error("Failed to load YouTube API");
-        if (retryCount < MAX_RETRIES) {
-          retryCount++;
-          loadingTextEl.textContent = `Retrying... (${retryCount}/${MAX_RETRIES})`;
-          setTimeout(loadYouTubeAPI, 2000);
-        } else {
-          showError(
-            "YouTube API Error",
-            "Failed to load YouTube player. Please check your internet connection.",
-            true
-          );
-        }
-      };
-      document.head.appendChild(script);
-    }
-
-    // Main Initialization
+    // Main Initialization - Uses direct iframe embed (no YouTube API)
     function initMovie() {
       const movieId = getMovieId();
       console.log("Movie ID:", movieId);
@@ -455,75 +349,49 @@
         return;
       }
 
+      // Show movie info overlay
       showMovieInfo(movie);
 
-      if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
-        apiReady = true;
-        createYouTubePlayer(movie);
-      } else {
-        loadingTextEl.textContent = "Loading YouTube player...";
-        loadYouTubeAPI();
-      }
-    }
+      // Create the iframe
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1&controls=1&rel=0&playsinline=1&modestbranding=1`;
+      iframe.allow = "autoplay; encrypted-media; fullscreen";
+      iframe.allowFullscreen = true;
+      iframe.setAttribute('loading', 'lazy');
 
-    // Retry Function
-    window.retryLoad = function() {
-      retryCount = 0;
-      playerReady = false;
-      apiReady = false;
-      loadingEl.innerHTML = `
-        <div class="spinner"></div>
-        <div id="loadingText">Retrying...</div>
-      `;
-      loadingEl.hidden = false;
-      // Re-initialize
-      setTimeout(initMovie, 500);
-    };
+      // When iframe loads, hide the loading overlay
+      iframe.onload = function() {
+        loadingEl.hidden = true;
+        loadingTextEl.textContent = "Movie loaded";
+      };
 
-    // YouTube API Callback
-    window.onYouTubeIframeAPIReady = function() {
-      console.log("YouTube IFrame API loaded");
-      apiReady = true;
-      retryCount = 0;
-      initMovie();
-    };
-
-    // Fallback if API doesn't load
-    window.onYouTubeIframeAPIError = function() {
-      console.error("YouTube IFrame API failed to load");
-      if (retryCount < MAX_RETRIES) {
-        retryCount++;
-        loadingTextEl.textContent = `Retrying... (${retryCount}/${MAX_RETRIES})`;
-        setTimeout(loadYouTubeAPI, 2000);
-      } else {
+      // If iframe fails to load (rare), show error after timeout
+      iframe.onerror = function() {
         showError(
-          "YouTube API Error",
-          "Failed to load YouTube player. Please refresh the page.",
+          "Failed to load video",
+          "The YouTube video could not be loaded. Please try again.",
           true
         );
-      }
-    };
+      };
 
-    // Initialize on DOM ready
-    document.addEventListener("DOMContentLoaded", function() {
-      if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
-        apiReady = true;
-      }
-      initMovie();
-    });
+      // Clear any previous content and append iframe
+      playerEl.innerHTML = '';
+      playerEl.appendChild(iframe);
 
-    // Timeout fallback
-    setTimeout(function() {
-      if (loadingEl.hidden === false && !playerReady) {
-        if (retryCount >= MAX_RETRIES) {
+      // Fallback timeout: if iframe doesn't load in 10 seconds, assume failure
+      setTimeout(() => {
+        if (!loadingEl.hidden) {
           showError(
             "Loading timeout",
-            "The player took too long to load. Please try again.",
+            "The video took too long to load. Please check your internet connection.",
             true
           );
         }
-      }
-    }, 15000);
+      }, 10000);
+    }
+
+    // Start on DOM ready
+    document.addEventListener("DOMContentLoaded", initMovie);
   </script>
 </body>
 </html>
